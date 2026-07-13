@@ -1,7 +1,5 @@
-# ============================================================
-# PHISHING DETECTOR - Predict
+# Phishing Detector - Prediction Module
 # Author: Naman Dugar | HCIC-SI 2026 | P16
-# ============================================================
 
 import joblib
 import os
@@ -9,10 +7,7 @@ import time
 from urllib.parse import urlparse
 from feature_extractor import analyze_url
 
-# ============================================================
-# WHITELIST - Known legitimate domains (skip full analysis)
-# ============================================================
-
+# Known legitimate domains (skip full analysis)
 WHITELIST = {
     'google.com', 'github.com', 'microsoft.com', 'apple.com',
     'amazon.com', 'facebook.com', 'twitter.com', 'linkedin.com',
@@ -21,10 +16,6 @@ WHITELIST = {
     'youtube.com', 'instagram.com', 'wikipedia.org', 'stackoverflow.com',
     'anthropic.com', 'openai.com', 'cloudflare.com', 'aws.amazon.com'
 }
-
-# ============================================================
-# LOAD MODEL ONCE
-# ============================================================
 
 BASE = os.path.dirname(__file__)
 MODEL_PATH = os.path.join(BASE, '..', 'models', 'phishing_model.pkl')
@@ -35,20 +26,11 @@ model = joblib.load(MODEL_PATH)
 feature_names = joblib.load(FEATURES_PATH)
 print("Model loaded successfully.")
 
-# ============================================================
-# MAIN PREDICTION FUNCTION
-# ============================================================
 
 def predict(url):
-    """
-    Takes a URL string.
-    Returns a complete result dictionary.
-    """
-
-    # STEP 1: Clean URL
+    """Takes a URL string, returns a complete result dictionary."""
     url = url.strip()
 
-    # STEP 2: Check if empty
     if not url:
         return {
             "url": url,
@@ -61,11 +43,10 @@ def predict(url):
             "error": "Empty URL provided"
         }
 
-    # STEP 3: Add http:// if no scheme
     if not url.startswith('http://') and not url.startswith('https://'):
         url = 'http://' + url
 
-    # STEP 4: Whitelist check
+    # Whitelist check
     domain = urlparse(url).netloc.lower().replace('www.', '')
     if any(domain.endswith(w) for w in WHITELIST):
         return {
@@ -83,32 +64,19 @@ def predict(url):
             }
         }
 
-    # STEP 5: Full 4-signal analysis
+    # Full 4-signal analysis
     start_time = time.time()
     result = analyze_url(url, model, feature_names)
     end_time = time.time()
 
     result['detection_time'] = f"{end_time - start_time:.1f}s"
-
     return result
 
 
-# ============================================================
-# BATCH PREDICTION
-# ============================================================
-
 def predict_batch(urls):
     """Takes a list of URLs, returns list of results."""
-    results = []
-    for url in urls:
-        result = predict(url)
-        results.append(result)
-    return results
+    return [predict(url) for url in urls]
 
-
-# ============================================================
-# HELPER: One-line summary
-# ============================================================
 
 def get_summary(result):
     """Returns a one-line summary of the prediction result."""
@@ -120,12 +88,7 @@ def get_summary(result):
     )
 
 
-# ============================================================
-# QUICK TEST
-# ============================================================
-
 if __name__ == "__main__":
-
     test_urls = [
         "https://www.google.com",
         "https://www.sbi.co.in",
@@ -134,9 +97,8 @@ if __name__ == "__main__":
         "https://github.com",
     ]
 
-    print("\n" + "="*60)
-    print("PHISHING DETECTOR - Batch Test")
-    print("="*60)
+    print("\nPhishing Detector - Batch Test")
+    print("-" * 50)
 
     for url in test_urls:
         result = predict(url)
@@ -145,4 +107,4 @@ if __name__ == "__main__":
         print(f"Score   : {result['risk_score']}/100")
         print(f"Time    : {result['detection_time']}")
         print(f"Summary : {get_summary(result)}")
-        print("-"*60)
+        print("-" * 50)

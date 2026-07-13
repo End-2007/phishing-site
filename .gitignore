@@ -1,7 +1,3 @@
-# ============================================================
-# PHISHING DETECTOR - .gitignore
-# ============================================================
-
 # Python
 __pycache__/
 *.py[cod]
@@ -27,7 +23,7 @@ env/
 .env
 .venv
 
-# Jupyter Notebooks
+# Jupyter
 .ipynb_checkpoints/
 *.ipynb
 
@@ -38,14 +34,14 @@ data/*.zip
 data/*.gz
 data/*.7z
 
-# Trained model files (too large for GitHub)
-models/*.pkl
+# Model files (keep .pkl for Streamlit Cloud deployment)
+# models/*.pkl        <- committed (needed at runtime)
 models/*.joblib
 models/*.h5
 models/*.pt
 
-# Reports / generated images
-reports/*.png
+# Reports (keep .png for README and dashboard)
+# reports/*.png       <- committed
 reports/*.jpg
 reports/*.pdf
 

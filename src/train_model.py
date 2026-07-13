@@ -1,7 +1,5 @@
-# ============================================================
-# PHISHING DETECTOR - Data Merge, Clean & Model Training
+# Phishing Detector - Data Merge, Clean & Model Training
 # Author: Naman Dugar | HCIC-SI 2026 | P16
-# ============================================================
 
 import pandas as pd
 import numpy as np
@@ -23,16 +21,14 @@ from xgboost import XGBClassifier
 import warnings
 warnings.filterwarnings("ignore")
 
-# ============================================================
-# STEP 1: LOAD ALL 3 DATASETS
-# ============================================================
+
+# Step 1: Load all 3 datasets
 
 print("\n[1/7] Loading datasets...")
 
 BASE = os.path.join(os.path.dirname(__file__), '..', 'data')
 
-# --- Dataset 1: ISCX Malicious URLs (malicious_phish.csv) ---
-# Columns: url, type (benign / phishing / malware / defacement)
+# Dataset 1: ISCX Malicious URLs — columns: url, type (benign/phishing/malware/defacement)
 df1 = pd.read_csv(os.path.join(BASE, 'malicious_phish.csv'))
 df1 = df1.rename(columns={'url': 'url', 'type': 'label_raw'})
 df1['label'] = df1['label_raw'].apply(
@@ -41,8 +37,7 @@ df1['label'] = df1['label_raw'].apply(
 df1 = df1[['url', 'label']]
 print(f"  Dataset 1 (ISCX):          {len(df1):>8,} rows")
 
-# --- Dataset 2: Phishing Site URLs (phishing_site_urls.csv) ---
-# Columns: URL, Label (good / bad)
+# Dataset 2: Phishing Site URLs — columns: URL, Label (good/bad)
 df2 = pd.read_csv(os.path.join(BASE, 'phishing_site_urls.csv'))
 df2.columns = df2.columns.str.strip()
 url_col2 = [c for c in df2.columns if c.lower() in ['url', 'urls']][0]
@@ -54,8 +49,7 @@ df2['label'] = df2['label_raw'].apply(
 df2 = df2[['url', 'label']]
 print(f"  Dataset 2 (Phishing Site): {len(df2):>8,} rows")
 
-# --- Dataset 3: PhishTank Verified (verified_online.csv) ---
-# All URLs here are verified phishing → label = 1
+# Dataset 3: PhishTank Verified — all URLs are confirmed phishing
 df3 = pd.read_csv(os.path.join(BASE, 'verified_online.csv'), on_bad_lines='skip')
 df3.columns = df3.columns.str.strip().str.lower()
 url_col3 = [c for c in df3.columns if 'url' in c][0]
@@ -63,43 +57,29 @@ df3 = df3[[url_col3]].rename(columns={url_col3: 'url'})
 df3['label'] = 1
 print(f"  Dataset 3 (PhishTank):     {len(df3):>8,} rows")
 
-# ============================================================
-# STEP 2: MERGE & CLEAN
-# ============================================================
+
+# Step 2: Merge and clean
 
 print("\n[2/7] Merging and cleaning...")
 
 df = pd.concat([df1, df2, df3], ignore_index=True)
 print(f"  Total before cleaning:     {len(df):>8,} rows")
 
-# Drop nulls
 df = df.dropna(subset=['url', 'label'])
-
-# Drop empty URLs
 df = df[df['url'].astype(str).str.strip() != '']
-
-# Normalize URL: strip whitespace, lowercase
 df['url'] = df['url'].astype(str).str.strip().str.lower()
-
-# Remove duplicates (keep first occurrence)
 df = df.drop_duplicates(subset=['url'])
-
-# Ensure label is integer
 df['label'] = df['label'].astype(int)
-
-# Remove obviously broken entries (less than 4 chars)
 df = df[df['url'].str.len() >= 4]
 
 print(f"  Total after cleaning:      {len(df):>8,} rows")
 print(f"  Legitimate (0):            {(df['label']==0).sum():>8,}")
 print(f"  Phishing   (1):            {(df['label']==1).sum():>8,}")
 
-# ============================================================
-# STEP 3: FEATURE EXTRACTION (URL-based only for training)
-# Note: Live detection uses full 4-signal extractor.
-#       Training uses URL features since we can't fetch
-#       650K+ live pages. Model is still 95%+ accurate.
-# ============================================================
+
+# Step 3: Feature extraction (URL-based only)
+# Training uses URL features since we can't fetch 650K+ live pages.
+# Live detection uses the full 4-signal extractor for better accuracy.
 
 print("\n[3/7] Extracting URL features...")
 
@@ -123,12 +103,10 @@ def extract_url_features(url):
         path = parsed.path.lower()
         full = url.lower()
 
-        # --- Length features ---
         features['url_length'] = len(url)
         features['domain_length'] = len(domain)
         features['path_length'] = len(path)
 
-        # --- Character counts ---
         features['num_dots'] = url.count('.')
         features['num_hyphens'] = url.count('-')
         features['num_underscores'] = url.count('_')
@@ -140,7 +118,6 @@ def extract_url_features(url):
         features['num_percent'] = url.count('%')
         features['num_digits'] = sum(c.isdigit() for c in url)
 
-        # --- Domain features ---
         subdomains = domain.split('.')
         features['num_subdomains'] = max(0, len(subdomains) - 2)
         features['has_ip_address'] = int(bool(
@@ -150,10 +127,8 @@ def extract_url_features(url):
             any(s in domain for s in SHORTENERS)
         )
 
-        # --- Protocol ---
         features['has_https'] = int(parsed.scheme == 'https')
 
-        # --- Suspicious keywords ---
         features['suspicious_keyword_count'] = sum(
             1 for kw in SUSPICIOUS_KEYWORDS if kw in full
         )
@@ -161,14 +136,12 @@ def extract_url_features(url):
             features['suspicious_keyword_count'] > 0
         )
 
-        # --- Special patterns ---
         features['has_double_slash'] = int('//' in path)
         features['has_hex_encoding'] = int('%' in url and re.search(r'%[0-9a-fA-F]{2}', url) is not None)
         features['path_depth'] = path.count('/')
         features['has_port'] = int(':' in domain)
         features['tld_in_path'] = int(bool(re.search(r'\.(com|net|org|info|biz)', path)))
 
-        # --- Ratio features ---
         features['digit_ratio'] = features['num_digits'] / max(len(url), 1)
         features['special_char_ratio'] = (
             features['num_dots'] + features['num_hyphens'] +
@@ -176,7 +149,6 @@ def extract_url_features(url):
         ) / max(len(url), 1)
 
     except Exception:
-        # Return zeros if URL is malformed
         features = {k: 0 for k in [
             'url_length', 'domain_length', 'path_length',
             'num_dots', 'num_hyphens', 'num_underscores',
@@ -189,7 +161,6 @@ def extract_url_features(url):
         ]}
     return features
 
-# Apply feature extraction (vectorized via list comprehension for speed)
 print("  Extracting features (this takes 2-3 minutes for large datasets)...")
 feature_list = [extract_url_features(url) for url in df['url']]
 X = pd.DataFrame(feature_list)
@@ -197,9 +168,8 @@ y = df['label'].values
 
 print(f"  Features extracted: {X.shape[1]} features x {X.shape[0]:,} samples")
 
-# ============================================================
-# STEP 4: HANDLE CLASS IMBALANCE
-# ============================================================
+
+# Step 4: Handle class imbalance
 
 print("\n[4/7] Balancing classes...")
 
@@ -209,7 +179,6 @@ minority = X[X['label'] == 1]
 
 print(f"  Before balancing — Majority: {len(majority):,} | Minority: {len(minority):,}")
 
-# Downsample majority or upsample minority to match
 if len(majority) > len(minority) * 1.5:
     majority_downsampled = resample(
         majority, replace=False,
@@ -226,9 +195,8 @@ X_balanced = X_balanced.drop('label', axis=1)
 
 print(f"  After balancing  — Total: {len(X_balanced):,} | 50-50 split")
 
-# ============================================================
-# STEP 5: TRAIN / TEST SPLIT & MODEL TRAINING
-# ============================================================
+
+# Step 5: Train/test split and model training
 
 print("\n[5/7] Training XGBoost model...")
 
@@ -250,7 +218,7 @@ model = XGBClassifier(
     use_label_encoder=False,
     eval_metric='logloss',
     random_state=42,
-    n_jobs=-1  # use all CPU cores
+    n_jobs=-1
 )
 
 model.fit(
@@ -259,9 +227,8 @@ model.fit(
     verbose=50
 )
 
-# ============================================================
-# STEP 6: EVALUATE
-# ============================================================
+
+# Step 6: Evaluate
 
 print("\n[6/7] Evaluating model...")
 
@@ -274,21 +241,18 @@ rec  = recall_score(y_test, y_pred)
 f1   = f1_score(y_test, y_pred)
 auc  = roc_auc_score(y_test, y_prob)
 
-print(f"\n  {'='*40}")
-print(f"  Accuracy  : {acc*100:.2f}%")
+print(f"\n  Accuracy  : {acc*100:.2f}%")
 print(f"  Precision : {prec*100:.2f}%")
 print(f"  Recall    : {rec*100:.2f}%")
 print(f"  F1 Score  : {f1*100:.2f}%")
 print(f"  ROC-AUC   : {auc*100:.2f}%")
-print(f"  {'='*40}")
 
 print("\n  Classification Report:")
 print(classification_report(y_test, y_pred, target_names=['Legitimate', 'Phishing']))
 
-# Save feature names for use in prediction
 feature_names = list(X_balanced.columns)
 
-# --- Confusion Matrix ---
+# Confusion matrix
 os.makedirs(os.path.join(os.path.dirname(__file__), '..', 'reports'), exist_ok=True)
 REPORT_DIR = os.path.join(os.path.dirname(__file__), '..', 'reports')
 
@@ -305,7 +269,7 @@ plt.savefig(os.path.join(REPORT_DIR, 'confusion_matrix.png'), dpi=150)
 plt.close()
 print("  Saved: reports/confusion_matrix.png")
 
-# --- ROC Curve ---
+# ROC curve
 fpr, tpr, _ = roc_curve(y_test, y_prob)
 plt.figure(figsize=(6, 5))
 plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC Curve (AUC = {auc:.3f})')
@@ -319,7 +283,7 @@ plt.savefig(os.path.join(REPORT_DIR, 'roc_curve.png'), dpi=150)
 plt.close()
 print("  Saved: reports/roc_curve.png")
 
-# --- Feature Importance ---
+# Feature importance
 importance = pd.Series(model.feature_importances_, index=feature_names)
 importance = importance.sort_values(ascending=False).head(15)
 plt.figure(figsize=(8, 6))
@@ -332,9 +296,8 @@ plt.savefig(os.path.join(REPORT_DIR, 'feature_importance.png'), dpi=150)
 plt.close()
 print("  Saved: reports/feature_importance.png")
 
-# ============================================================
-# STEP 7: SAVE MODEL
-# ============================================================
+
+# Step 7: Save model
 
 print("\n[7/7] Saving model...")
 
@@ -347,6 +310,4 @@ joblib.dump(feature_names, os.path.join(MODEL_DIR, 'feature_names.pkl'))
 print("  Saved: models/phishing_model.pkl")
 print("  Saved: models/feature_names.pkl")
 
-print("\n✅ TRAINING COMPLETE")
-print(f"   Model accuracy: {acc*100:.2f}% | AUC: {auc*100:.2f}%")
-print("   Ready to move to feature_extractor.py\n")
+print(f"\nTraining complete. Accuracy: {acc*100:.2f}% | AUC: {auc*100:.2f}%\n")
