@@ -31,32 +31,32 @@ The system is designed for speed and modularity. The pipeline allows the heavy n
 ```mermaid
 graph TD
     %% Styling
-    classDef input fill:#f9f9f9,stroke:#333,stroke-width:2px;
-    classDef process fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
-    classDef analysis fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
-    classDef fusion fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
-    classDef safe fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20;
-    classDef suspicious fill:#ffe0b2,stroke:#f57c00,stroke-width:2px,color:#e65100;
-    classDef phishing fill:#ffcdd2,stroke:#d32f2f,stroke-width:2px,color:#b71c1c;
+    classDef input fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef process fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef analysis fill:#fff8e1,stroke:#f57c00,stroke-width:2px;
+    classDef fusion fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef safe fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px;
+    classDef suspicious fill:#ffe0b2,stroke:#e65100,stroke-width:2px;
+    classDef phishing fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px;
 
-    A[User Input URL]:::input --> B{Whitelist Check}:::process
-    B -- Known Safe --> C((Verdict: SAFE)):::safe
-    B -- Unknown --> D[Parallel Analysis]:::process
+    A["<font color='black'>User Input URL</font>"]:::input --> B{"<font color='black'>Whitelist Check</font>"}:::process
+    B -- Known Safe --> C(("<font color='black'>Verdict: SAFE</font>")):::safe
+    B -- Unknown --> D["<font color='black'>Parallel Analysis</font>"]:::process
     
-    D --> E[1. ML Model extraction]:::analysis
-    D --> F[2. Live HTML Fetch]:::analysis
-    D --> G[3. SSL Inspection]:::analysis
-    D --> H[4. WHOIS Query]:::analysis
+    D --> E["<font color='black'>1. ML Model extraction</font>"]:::analysis
+    D --> F["<font color='black'>2. Live HTML Fetch</font>"]:::analysis
+    D --> G["<font color='black'>3. SSL Inspection</font>"]:::analysis
+    D --> H["<font color='black'>4. WHOIS Query</font>"]:::analysis
     
-    E --> I(Risk Score Fusion):::fusion
+    E --> I("<font color='black'>Risk Score Fusion</font>"):::fusion
     F --> I
     G --> I
     H --> I
     
-    I --> J{Score Threshold}:::process
-    J -- < 50 --> K[Safe]:::safe
-    J -- 50-64 --> L[Suspicious]:::suspicious
-    J -- >= 65 --> M[Phishing]:::phishing
+    I --> J{"<font color='black'>Score Threshold</font>"}:::process
+    J -- < 50 --> K["<font color='black'>Safe</font>"]:::safe
+    J -- 50-64 --> L["<font color='black'>Suspicious</font>"]:::suspicious
+    J -- >= 65 --> M["<font color='black'>Phishing</font>"]:::phishing
 ```
 
 ## ☁️ Deployment
