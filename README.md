@@ -2,6 +2,8 @@
 
 An explainable, machine-learning-based system for real-time detection of phishing and malicious URLs. 
 
+**Live Demo:** [https://phishing-site-tcrfgkijszgwlmwwoh9agm.streamlit.app/](https://phishing-site-tcrfgkijszgwlmwwoh9agm.streamlit.app/)
+
 Phishing Detector moves beyond traditional, reactive blacklists by evaluating the structural, behavioral, and infrastructural characteristics of a website in real time. Built with an XGBoost classifier and a live four-signal analysis engine, the system delivers highly accurate verdicts (**Safe**, **Suspicious**, or **Phishing**) along with a plain-language explanation of why a URL was flagged.
 
 ## 🚀 Core Innovation
@@ -30,24 +32,33 @@ The system is designed for speed and modularity. The pipeline allows the heavy n
 
 ```mermaid
 graph TD
-    A[User Input URL] --> B{Whitelist Check}
-    B -- Known Safe --> C((Verdict: SAFE))
-    B -- Unknown --> D[Parallel Analysis]
+    %% Styling
+    classDef input fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+    classDef process fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef analysis fill:#fff8e1,stroke:#f57c00,stroke-width:2px;
+    classDef fusion fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+    classDef safe fill:#c8e6c9,stroke:#1b5e20,stroke-width:2px;
+    classDef suspicious fill:#ffe0b2,stroke:#e65100,stroke-width:2px;
+    classDef phishing fill:#ffcdd2,stroke:#b71c1c,stroke-width:2px;
+
+    A["<font color='black'>User Input URL</font>"]:::input --> B{"<font color='black'>Whitelist Check</font>"}:::process
+    B -- Known Safe --> C(("<font color='black'>Verdict: SAFE</font>")):::safe
+    B -- Unknown --> D["<font color='black'>Parallel Analysis</font>"]:::process
     
-    D --> E[1. ML Model extraction]
-    D --> F[2. Live HTML Fetch]
-    D --> G[3. SSL Inspection]
-    D --> H[4. WHOIS Query]
+    D --> E["<font color='black'>1. ML Model extraction</font>"]:::analysis
+    D --> F["<font color='black'>2. Live HTML Fetch</font>"]:::analysis
+    D --> G["<font color='black'>3. SSL Inspection</font>"]:::analysis
+    D --> H["<font color='black'>4. WHOIS Query</font>"]:::analysis
     
-    E --> I(Risk Score Fusion)
+    E --> I("<font color='black'>Risk Score Fusion</font>"):::fusion
     F --> I
     G --> I
     H --> I
     
-    I --> J{Score Threshold}
-    J -- < 50 --> K[Safe]
-    J -- 50-64 --> L[Suspicious]
-    J -- >= 65 --> M[Phishing]
+    I --> J{"<font color='black'>Score Threshold</font>"}:::process
+    J -- < 50 --> K["<font color='black'>Safe</font>"]:::safe
+    J -- 50-64 --> L["<font color='black'>Suspicious</font>"]:::suspicious
+    J -- >= 65 --> M["<font color='black'>Phishing</font>"]:::phishing
 ```
 
 ## ☁️ Deployment
