@@ -30,24 +30,33 @@ The system is designed for speed and modularity. The pipeline allows the heavy n
 
 ```mermaid
 graph TD
-    A[User Input URL] --> B{Whitelist Check}
-    B -- Known Safe --> C((Verdict: SAFE))
-    B -- Unknown --> D[Parallel Analysis]
+    %% Styling
+    classDef input fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef process fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef analysis fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef fusion fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+    classDef safe fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20;
+    classDef suspicious fill:#ffe0b2,stroke:#f57c00,stroke-width:2px,color:#e65100;
+    classDef phishing fill:#ffcdd2,stroke:#d32f2f,stroke-width:2px,color:#b71c1c;
+
+    A[User Input URL]:::input --> B{Whitelist Check}:::process
+    B -- Known Safe --> C((Verdict: SAFE)):::safe
+    B -- Unknown --> D[Parallel Analysis]:::process
     
-    D --> E[1. ML Model extraction]
-    D --> F[2. Live HTML Fetch]
-    D --> G[3. SSL Inspection]
-    D --> H[4. WHOIS Query]
+    D --> E[1. ML Model extraction]:::analysis
+    D --> F[2. Live HTML Fetch]:::analysis
+    D --> G[3. SSL Inspection]:::analysis
+    D --> H[4. WHOIS Query]:::analysis
     
-    E --> I(Risk Score Fusion)
+    E --> I(Risk Score Fusion):::fusion
     F --> I
     G --> I
     H --> I
     
-    I --> J{Score Threshold}
-    J -- < 50 --> K[Safe]
-    J -- 50-64 --> L[Suspicious]
-    J -- >= 65 --> M[Phishing]
+    I --> J{Score Threshold}:::process
+    J -- < 50 --> K[Safe]:::safe
+    J -- 50-64 --> L[Suspicious]:::suspicious
+    J -- >= 65 --> M[Phishing]:::phishing
 ```
 
 ## ☁️ Deployment
