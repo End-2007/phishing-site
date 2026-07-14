@@ -2,6 +2,8 @@
 
 An explainable, machine-learning-based system for real-time detection of phishing and malicious URLs. 
 
+**Live Demo:** [https://phishing-site-tcrfgkijszgwlmwwoh9agm.streamlit.app/](https://phishing-site-tcrfgkijszgwlmwwoh9agm.streamlit.app/)
+
 Phishing Detector moves beyond traditional, reactive blacklists by evaluating the structural, behavioral, and infrastructural characteristics of a website in real time. Built with an XGBoost classifier and a live four-signal analysis engine, the system delivers highly accurate verdicts (**Safe**, **Suspicious**, or **Phishing**) along with a plain-language explanation of why a URL was flagged.
 
 ## 🚀 Core Innovation
