@@ -727,55 +727,66 @@ with tab_batch:
                     if st.button("▶️  Resume Scanning", type="primary", use_container_width=True, key="batch_resume"):
                         st.session_state._bf_paused = False
                         st.session_state._bf_running = True
-                        st.rerun(scope="fragment")
+                        st.rerun()
                 with rc2:
                     if st.button("⛔  Stop & Show Results", use_container_width=True, key="batch_stop"):
                         st.session_state._bf_paused = False
                         st.session_state._bf_running = False
                         st.session_state._bf_stopped = True
-                        st.rerun(scope="fragment")
+                        st.rerun()
 
             elif st.session_state.get("_bf_running", False):
-                # Currently running — show pause button
                 if st.button("⏸️  Pause Scanning", use_container_width=True, key="batch_pause"):
                     st.session_state._bf_paused = True
                     st.session_state._bf_running = False
-                    st.rerun(scope="fragment")
+                    st.rerun()
 
             else:
-                # Not running — show start/continue button
                 btn_label = "🚀  Analyze All URLs" if done == 0 else f"▶️  Continue ({total - done} remaining)"
                 if st.button(btn_label, type="primary", use_container_width=True, key="batch_go"):
                     st.session_state._bf_running = True
-                    st.rerun(scope="fragment")
+                    st.rerun()
 
-        # Process ONE URL per rerun cycle (state machine approach)
+        # Process URLs in chunks to allow UI to breathe and buttons to register
         if st.session_state.get("_bf_running", False) and not st.session_state.get("_bf_paused", False) and done < total:
-            url = normalize_url(urls[done])
-            try:
-                r = predict_fn(url)
-                row = {
-                    "url": r.get("url", url),
-                    "verdict": r.get("verdict", "ERROR"),
-                    "risk_score": r.get("risk_score", 0),
-                    "confidence": r.get("ml_confidence", "N/A"),
-                    "time": r.get("detection_time", "N/A"),
-                }
-            except Exception:
-                row = {"url": url, "verdict": "ERROR", "risk_score": 0,
-                       "confidence": "N/A", "time": "N/A"}
+            chunk_size = 5  # Process 5 URLs before rerunning to check for Pause clicks
+            
+            progress = st.progress(done / total, text=f"Processing chunk...")
+            status_line = st.empty()
+            
+            for i in range(min(chunk_size, total - done)):
+                current_idx = done + i
+                url = normalize_url(urls[current_idx])
+                try:
+                    r = predict_fn(url)
+                    row = {
+                        "url": r.get("url", url),
+                        "verdict": r.get("verdict", "ERROR"),
+                        "risk_score": r.get("risk_score", 0),
+                        "confidence": r.get("ml_confidence", "N/A"),
+                        "time": r.get("detection_time", "N/A"),
+                    }
+                except Exception:
+                    row = {"url": url, "verdict": "ERROR", "risk_score": 0,
+                           "confidence": "N/A", "time": "N/A"}
 
-            st.session_state._bf_results.append(row)
-            add_to_history({"url": row["url"], "verdict": row["verdict"],
-                            "risk_score": row["risk_score"],
-                            "ml_confidence": row["confidence"],
-                            "detection_time": row["time"]})
+                st.session_state._bf_results.append(row)
+                add_to_history({"url": row["url"], "verdict": row["verdict"],
+                                "risk_score": row["risk_score"],
+                                "ml_confidence": row["confidence"],
+                                "detection_time": row["time"]})
 
-            # Check if batch is complete
+                progress.progress(
+                    (current_idx + 1) / total,
+                    text=f"✅ {current_idx + 1}/{total}  —  {row['verdict']}: {row['url'][:50]}"
+                )
+                status_line.caption(f"⏱️ {row['time']}")
+
             if len(st.session_state._bf_results) >= total:
                 st.session_state._bf_running = False
 
-            st.rerun(scope="fragment")
+            time.sleep(0.5)
+            st.rerun()
 
         # Display results
         if results:
