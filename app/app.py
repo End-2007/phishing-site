@@ -881,6 +881,7 @@ with tab_dashboard:
 
         st.markdown("#### 📜 Full Scan History")
         display_df = df_hist[::-1].reset_index(drop=True)
+        display_df.index = display_df.index + 1
         styled_hist = safe_style(display_df.style, color_verdict_cell, subset=["verdict"])
         st.dataframe(styled_hist, height=350)
 
