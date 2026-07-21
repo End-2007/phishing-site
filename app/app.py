@@ -543,8 +543,8 @@ with tab_scan:
         if st.button("✅ google.com", use_container_width=True):
             quick_url = "https://www.google.com"
     with qt2:
-        if st.button("⚠️ Suspicious URL", use_container_width=True):
-            quick_url = "http://login-update-verify.co/secure"
+        if st.button("⚠️ Suspicious IP", use_container_width=True):
+            quick_url = "http://192.168.1.1/bank/login"
     with qt3:
         if st.button("🚨 Phishing Sample", use_container_width=True):
             quick_url = "http://paypal-secure-login-verify.xyz/account/confirm"
@@ -641,6 +641,7 @@ with tab_batch:
             st.session_state._bf_id = None
             st.session_state._bf_urls = []
             st.session_state._bf_results = []
+            st.session_state._bf_running = False
             st.session_state._bf_paused = False
             st.session_state._bf_stopped = False
             return
@@ -662,6 +663,7 @@ with tab_batch:
             st.session_state._bf_id = file_id
             st.session_state._bf_urls = urls
             st.session_state._bf_results = []
+            st.session_state._bf_running = False
             st.session_state._bf_paused = False
             st.session_state._bf_stopped = False
 
@@ -674,83 +676,84 @@ with tab_batch:
             st.warning("No valid URLs found in the uploaded file.")
             return
 
+        # Status messages
         if st.session_state.get("_bf_stopped", False) and done < total:
             st.warning(f"⛔ Scan stopped at **{done}/{total}** URLs. Results so far are shown below.")
         elif done == 0:
             st.success(f"📋 Found **{total}** URLs ready for analysis")
+        elif st.session_state.get("_bf_paused", False):
+            st.info(f"⏸️ Paused at **{done}/{total}** URLs. Click **Resume** to continue or **Stop** to finish.")
         elif done < total:
-            if st.session_state.get("_bf_paused", False):
-                st.info(f"⏸️ Paused at **{done}/{total}** URLs. Click **Resume** to continue or **Stop** to finish.")
+            if st.session_state.get("_bf_running", False):
+                st.info(f"🔄 Scanning **{done}/{total}** URLs...")
             else:
                 st.info(f"📋 **{done}/{total}** URLs analyzed. Click below to continue.")
         else:
             st.success(f"✅ All **{total}** URLs analyzed!")
 
-        # Process remaining URLs
+        # Show progress bar if processing has started
+        if done > 0 and done < total:
+            st.progress(done / total, text=f"✅ {done}/{total} URLs analyzed")
+        elif done == total and done > 0:
+            st.progress(1.0, text=f"✅ Batch complete! Analyzed {total} URLs.")
+
+        # Control buttons
         if done < total and not st.session_state.get("_bf_stopped", False):
             if st.session_state.get("_bf_paused", False):
-                # Show resume and stop buttons
                 rc1, rc2 = st.columns(2)
                 with rc1:
                     if st.button("▶️  Resume Scanning", type="primary", use_container_width=True, key="batch_resume"):
                         st.session_state._bf_paused = False
+                        st.session_state._bf_running = True
                         st.rerun(scope="fragment")
                 with rc2:
                     if st.button("⛔  Stop & Show Results", use_container_width=True, key="batch_stop"):
                         st.session_state._bf_paused = False
+                        st.session_state._bf_running = False
                         st.session_state._bf_stopped = True
                         st.rerun(scope="fragment")
+
+            elif st.session_state.get("_bf_running", False):
+                # Currently running — show pause button
+                if st.button("⏸️  Pause Scanning", use_container_width=True, key="batch_pause"):
+                    st.session_state._bf_paused = True
+                    st.session_state._bf_running = False
+                    st.rerun(scope="fragment")
+
             else:
+                # Not running — show start/continue button
                 btn_label = "🚀  Analyze All URLs" if done == 0 else f"▶️  Continue ({total - done} remaining)"
                 if st.button(btn_label, type="primary", use_container_width=True, key="batch_go"):
-                    progress = st.progress(done / total, text=f"Starting from URL {done + 1} …")
-                    ctrl_area = st.empty()
-                    status_line = st.empty()
-
-                    for i in range(done, total):
-                        # Check for pause request
-                        if st.session_state.get("_bf_paused", False):
-                            progress.progress((i) / total, text=f"⏸️ Paused at {i}/{total}")
-                            st.rerun(scope="fragment")
-                            return
-
-                        # Show pause button
-                        with ctrl_area.container():
-                            if st.button("⏸️  Pause", key=f"pause_{i}", use_container_width=True):
-                                st.session_state._bf_paused = True
-                                st.rerun(scope="fragment")
-                                return
-
-                        url = normalize_url(urls[i])
-                        try:
-                            r = predict_fn(url)
-                            row = {
-                                "url": r.get("url", url),
-                                "verdict": r.get("verdict", "ERROR"),
-                                "risk_score": r.get("risk_score", 0),
-                                "confidence": r.get("ml_confidence", "N/A"),
-                                "time": r.get("detection_time", "N/A"),
-                            }
-                        except Exception:
-                            row = {"url": url, "verdict": "ERROR", "risk_score": 0,
-                                   "confidence": "N/A", "time": "N/A"}
-
-                        st.session_state._bf_results.append(row)
-                        add_to_history({"url": row["url"], "verdict": row["verdict"],
-                                        "risk_score": row["risk_score"],
-                                        "ml_confidence": row["confidence"],
-                                        "detection_time": row["time"]})
-
-                        progress.progress(
-                            (i + 1) / total,
-                            text=f"✅ {i + 1}/{total}  —  {row['verdict']}: {row['url'][:50]}"
-                        )
-                        status_line.caption(f"⏱️ {row['time']}")
-
-                    ctrl_area.empty()
-                    progress.progress(1.0, text=f"✅ Batch complete! Analyzed {total} URLs.")
-                    time.sleep(0.5)
+                    st.session_state._bf_running = True
                     st.rerun(scope="fragment")
+
+        # Process ONE URL per rerun cycle (state machine approach)
+        if st.session_state.get("_bf_running", False) and not st.session_state.get("_bf_paused", False) and done < total:
+            url = normalize_url(urls[done])
+            try:
+                r = predict_fn(url)
+                row = {
+                    "url": r.get("url", url),
+                    "verdict": r.get("verdict", "ERROR"),
+                    "risk_score": r.get("risk_score", 0),
+                    "confidence": r.get("ml_confidence", "N/A"),
+                    "time": r.get("detection_time", "N/A"),
+                }
+            except Exception:
+                row = {"url": url, "verdict": "ERROR", "risk_score": 0,
+                       "confidence": "N/A", "time": "N/A"}
+
+            st.session_state._bf_results.append(row)
+            add_to_history({"url": row["url"], "verdict": row["verdict"],
+                            "risk_score": row["risk_score"],
+                            "ml_confidence": row["confidence"],
+                            "detection_time": row["time"]})
+
+            # Check if batch is complete
+            if len(st.session_state._bf_results) >= total:
+                st.session_state._bf_running = False
+
+            st.rerun(scope="fragment")
 
         # Display results
         if results:
