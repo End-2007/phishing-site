@@ -654,7 +654,7 @@ with tab_batch:
         st.markdown("#### 📁 Upload a CSV file with URLs")
         st.caption(
             "Your CSV must have a column named **url**, **URL**, **link**, or **website**. "
-            "All URLs will be processed — no limit."
+            "If your file is large, only the **first 100 URLs** will be processed to ensure server stability."
         )
 
         uploaded = st.file_uploader("Choose CSV file", type=["csv"], key="batch_csv_upload")
@@ -681,7 +681,7 @@ with tab_batch:
                 st.error("No URL column found. Ensure your CSV has a column named **url**, **link**, or **website**.")
                 return
             urls = df[url_col].dropna().astype(str).str.strip().tolist()
-            urls = [u for u in urls if len(u) >= 4]
+            urls = [u for u in urls if len(u) >= 4][:100]  # Limit to 100 URLs max
             st.session_state._bf_id = file_id
             st.session_state._bf_urls = urls
             st.session_state._bf_results = []
