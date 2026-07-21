@@ -778,6 +778,7 @@ with tab_batch:
             st.divider()
 
             df_res = pd.DataFrame(results)
+            df_res.index = df_res.index + 1
             bc1, bc2, bc3, bc4 = st.columns(4)
             with bc1: render_metric(len(df_res), "Total URLs", "white")
             with bc2: render_metric(int((df_res["verdict"] == "SAFE").sum()), "Safe ✅", "#22c55e")
