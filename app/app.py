@@ -452,8 +452,12 @@ def render_signal_card(sig_key, sig_data):
 
 
 def add_to_history(result):
+    from datetime import datetime, timedelta, timezone
+    # Force Indian Standard Time (UTC + 5:30)
+    ist_time = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
+    
     st.session_state.history.append({
-        "time": datetime.now().strftime("%H:%M:%S"),
+        "time": ist_time.strftime("%I:%M:%S %p IST"),
         "url": result.get("url", ""),
         "verdict": result.get("verdict", "UNKNOWN"),
         "risk_score": result.get("risk_score", 0),
