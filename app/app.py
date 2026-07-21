@@ -747,11 +747,11 @@ with tab_batch:
                     st.session_state._bf_running = True
                     st.rerun()
 
-        # Process URLs in chunks to allow UI to breathe and buttons to register
+        # Process URLs in mathematically safe chunks (max 34 reruns for 100 URLs, safely below the 50 limit)
         if st.session_state.get("_bf_running", False) and not st.session_state.get("_bf_paused", False) and done < total:
-            chunk_size = 5  # Process 5 URLs before rerunning to check for Pause clicks
+            chunk_size = 3  # 3 URLs takes ~4.5s (under 5s pause delay)
             
-            progress = st.progress(done / total, text=f"Processing chunk...")
+            progress = st.progress(done / total, text=f"Scanning batch...")
             status_line = st.empty()
             
             for i in range(min(chunk_size, total - done)):
