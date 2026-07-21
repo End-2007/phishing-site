@@ -544,7 +544,7 @@ with tab_scan:
             quick_url = "https://www.google.com"
     with qt2:
         if st.button("⚠️ Suspicious IP", use_container_width=True):
-            quick_url = "http://192.168.1.1/bank/login"
+            quick_url = "http://192.168.1.1"
     with qt3:
         if st.button("🚨 Phishing Sample", use_container_width=True):
             quick_url = "http://paypal-secure-login-verify.xyz/account/confirm"
